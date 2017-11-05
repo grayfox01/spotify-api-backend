@@ -2,7 +2,7 @@ var Q = require("q");
 var request = require('request');
 
 var ProfilesController = {
-  getInstance: (function() { // BEGIN iife
+  getInstance: (function() {
     var instance;
     return function() {
       if (!instance) {

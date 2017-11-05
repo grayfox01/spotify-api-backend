@@ -25,12 +25,11 @@ var generateRandomString = function(length) {
   return text;
 };
 
-router.get('/login', function(req, res) {
+router.get('/authorize', function(req, res) {
   var state = generateRandomString(16);
   res.cookie(stateKey, state);
-  res.cookie('type', 'login');
   // your application requests authorization
-  var scope = 'user-read-private user-read-email';
+  var scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -39,74 +38,6 @@ router.get('/login', function(req, res) {
       redirect_uri: redirect_uri,
       state: state
     }));
-});
-
-router.get('/signup', function(req, res) {
-  var state = generateRandomString(16);
-  res.cookie(stateKey, state);
-  res.cookie('type', 'signup');
-  // your application requests authorization
-  var scope = 'user-read-private user-read-email';
-  res.redirect('https://accounts.spotify.com/authorize?' +
-    querystring.stringify({
-      response_type: 'code',
-      client_id: client_id,
-      scope: scope,
-      redirect_uri: redirect_uri,
-      state: state
-    }));
-});
-
-router.post('/login',function(req,res,next) {
-  if(req.body.email && req.body.password){
-    let result = Factory.getInstance().getController("user").findByEmail(req.body.email);
-    result.then((data)=> {
-      var encryptedPassw = crypto.createHash('sha256').update(req.body.password).digest('base64');
-      console.log(encryptedPassw);
-      if(data && encryptedPassw == data.password){
-        let user = {};
-        user.id = data.id;
-        user.token = jwt.sign(user.id,config.secret);
-        res.status(200).send({
-          error:false,
-          data: user
-        });
-      }else{
-        res.status(403).send({
-            error: true,
-            data:{
-              message: 'User credentials invalid.'
-            }
-        });
-      }
-    },(error)=>{
-      res.status(400).send({
-          error: true,
-          data:{
-            message: error.message
-          }
-      });
-    });
-  }else{
-    res.status(403).send({
-        error: true,
-        data:{
-          message: 'User credentials not provided.'
-        }
-    });
-  }
-});
-
-router.post('/signup',function(req,res,next){
-  let user = req.body;
-  user.password = crypto.createHash('sha256').update(user.password).digest('base64');
-  let result = Factory.getInstance().getController("user").create(user);
-  result.then((data)=>{
-    console.log(data);
-    res.status(200).send({error:false, 'data' : data});
-  },(error)=>{
-    res.status(400).send(error);
-  });
 });
 
 router.get('/callback', function(req, res) {
@@ -119,7 +50,7 @@ router.get('/callback', function(req, res) {
   var storedState = req.cookies ? req.cookies[stateKey] : null;
 
   if (state === null || state !== storedState) {
-    res.redirect('/#' +
+    res.redirect('/restricted' +
       querystring.stringify({
         error: 'state_mismatch'
       }));
@@ -151,12 +82,19 @@ router.get('/callback', function(req, res) {
         };
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
-          var user = {};
-          res.clearCookie('type');
-          if(req.cookies['type']=='login'){
+          Factory.getInstance().getController("user").findById(body.id).then((user)=>{
+            var user = {};
             user.id = body.id;
-            user.token = jwt.sign(user.id,config.secret);
-          }else if(req.cookies['type']=='signup'){
+            user.access_token = access_token;
+            user.refresh_token = refresh_token;
+            Factory.getInstance().getController("user").update(user).then(data=>{
+               console.log(data);
+            });
+            let data = querystring.stringify({ id:body.id, token:jwt.sign(body.id,config.secret) });
+            res.redirect('http://localhost:4200/callback?'+data);
+          },(error)=>{
+            console.log(error);
+            var user = {};
             user.id = body.id;
             user.country = body.country;
             user.display_name = body.display_name;
@@ -164,9 +102,12 @@ router.get('/callback', function(req, res) {
             user.uri = body.uri;
             user.access_token = access_token;
             user.refresh_token = refresh_token;
-          }
-          let data = querystring.stringify(user);
-          res.redirect('http://localhost:4200/'+req.cookies['type']+'?'+data);
+            Factory.getInstance().getController("user").create(user).then(data=>{
+               console.log(data);
+            });
+            let data = querystring.stringify({ id:body.id, token:jwt.sign(body.id,config.secret) });
+            res.redirect('http://localhost:4200/callback?'+data);
+          });
         });
       } else {
         res.redirect('/#' +

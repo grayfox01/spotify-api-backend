@@ -12,13 +12,7 @@ Util.authenticate = function(req, res, next) {
         if (err) {
           return res.json({ error: true, data:{ message: 'Failed to authenticate token.' }});
         } else {
-          Factory.getInstance().getController("user")
-          .findById(decoded).then((user)=>{
-            console.log(user);
-            next();
-          },(error)=>{
-            console.log(error);
-          });
+          next();
         }
       });
     } else {

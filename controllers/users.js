@@ -9,22 +9,31 @@ var UserController = {
         instance = {
           findAll: function() {
             var deferred = Q.defer();
-            console.log("consultando usuarios");
-            User.forge()
-              .fetchAll()
-              .then(function(collection) {
-                console.log("usuarios:", collection);
-                deferred.resolve(collection.toJSON());
-              })
-              .catch(function(err) {
-                console.log("Error:", err, message);
-                deferred.reject({
-                  error: true,
-                  data: {
-                    message: err.message
-                  }
+            try {
+              console.log("consultando usuarios");
+              User.forge()
+                .fetchAll()
+                .then(function(collection) {
+                  console.log("usuarios:", collection);
+                  deferred.resolve(collection.toJSON());
+                })
+                .catch(function(err) {
+                  console.log("Error:", err, message);
+                  deferred.reject({
+                    error: true,
+                    data: {
+                      message: err.message
+                    }
+                  });
                 });
+            } catch (error) {
+              deferred.reject({
+                error: true,
+                data: {
+                  message: error
+                }
               });
+            }
             return deferred.promise;
           },
           findById: function(id) {
