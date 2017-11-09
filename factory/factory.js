@@ -1,5 +1,4 @@
 var UserController = require('./../controllers/users');
-var ProfileController = require('./../controllers/profiles');
 var PlaylistController = require('./../controllers/playlists');
 
 var factory = {
@@ -14,8 +13,6 @@ var factory = {
                   controller = UserController.getInstance();
               }else if (type === "playlist") {
                   controller = PlaylistController.getInstance();
-              }else if (type === "profile") {
-                  controller = ProfileController.getInstance();
               }
               return controller;
           }
