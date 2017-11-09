@@ -57,7 +57,7 @@ var PlayListController = {
               headers: {
                 'Authorization': 'Bearer ' + access_token
               },
-              body:JSON.parse(tracks),
+              body:{ 'tracks' : tracks },
               json: true
             };
             // use the access token to access the Spotify Web API

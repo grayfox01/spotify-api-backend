@@ -7,122 +7,103 @@ var Factory = require('./../factory/factory');
 var request = require('request');
 var querystring = require('querystring');
 
-router.get('/userId/:userId/playlists', Util.authenticate, function(req, res, next) {
-  Factory.getInstance().getController("user").findById(req.params.userId).then(user => {
-    Factory.getInstance().getController("playlist").findAll(user.id,user.access_token).then((playlists) => {
-      //Error access_token expired
-      if (playlists.error) {
-        var options = {
-          url: 'http://localhost:3000/v1/auth/refresh_token/' + user.refresh_token,
-          json: true
-        };
-        // use refresh access_token
-        request.get(options, function(error, response, body) {
-          console.log(body);
-          Factory.getInstance().getController("user").update({
-            id: req.params.userId,
-            access_token: body.data.access_token
-          }).then(data => {
-          }, error => {
-          })
-          let result2 = Factory.getInstance().getController("playlist").findAll(user.id,body.data.access_token);
-          result2.then((playlists2) => {
-            console.log(playlists2);
-            res.send({
-              error: false,
-              data: playlists2
-            });
+router.get('/', Util.authenticate, function(req, res, next) {
+  let data = JSON.parse(req.headers.body);
+  Factory.getInstance().getController("playlist").findAll(data.id, data.access_token).then((playlists) => {
+    //Error access_token expired
+    if (playlists.error) {
+      var options = {
+        url: 'http://localhost:3000/v1/auth/refresh_token/' + data.refresh_token,
+        json: true
+      };
+      // use refresh access_token
+      request.get(options, function(error, response, body) {
+        let user = {};
+        user.id = data.id;
+        user.access_token = body.data.access_token;
+        Factory.getInstance().getController("user").update(user).then((data)=>{},(error)=>{});
+        Factory.getInstance().getController("playlist").findAll(data.id, body.data.access_token).then((playlists) => {
+          res.send({
+            error: false,
+            refresh_user:true,
+            data: playlists
           });
         });
-      } else {
-        res.send({
-          error: false,
-          data: playlists
-        });
-      }
-    });
-  }, error => {
-    console.log(error);
-  })
+      });
+    } else {
+      res.send({
+        error: false,
+        refresh_user:false,
+        data: playlists
+      });
+    }
+  });
 });
 
-router.get('/userId/:userId/playlists/:playlistId', Util.authenticate, function(req, res, next) {
-  Factory.getInstance().getController("user").findById(req.params.userId).then(user => {
-    Factory.getInstance().getController("playlist").findById(user.id,req.params.playlistId,user.access_token).then((playlist) => {
-      //Error access_token expired
-      if (playlist.error) {
-        var options = {
-          url: 'http://localhost:3000/v1/auth/refresh_token/' + user.refresh_token,
-          json: true
-        };
-        // use refresh access_token
-        request.get(options, function(error, response, body) {
-          console.log(body);
-          Factory.getInstance().getController("user").update({
-            id: req.params.userId,
-            access_token: body.data.access_token
-          }).then(data => {
-          }, error => {
-          })
-          let result2 = Factory.getInstance().getController("playlist").findById(user.id,req.params.playlistId,body.data.access_token)
-          result2.then((playlist2) => {
-            console.log(playlist2);
-            res.send({
-              error: false,
-              data: playlists
-            });
+router.get('/:playlistId', Util.authenticate, function(req, res, next) {
+  let data = JSON.parse(req.headers.body);
+  Factory.getInstance().getController("playlist").findById(data.id, req.params.playlistId, data.access_token).then((playlist) => {
+    //Error access_token expired
+    if (playlist.error) {
+      var options = {
+        url: 'http://localhost:3000/v1/auth/refresh_token/' + data.refresh_token,
+        json: true
+      };
+      // use refresh access_token
+      request.get(options, function(error, response, body) {
+        let user = {};
+        user.id = data.id;
+        user.access_token = body.data.access_token;
+        Factory.getInstance().getController("user").update(user).then((data)=>{},(error)=>{});
+        Factory.getInstance().getController("playlist").findById(data.id, req.params.playlistId, body.data.access_token).then((playlist) => {
+          res.send({
+            error: false,
+            refresh_user:true,
+            data: playlist
           });
         });
-      } else {
-        res.send({
-          error: false,
-          data: playlist
-        });
-      }
-    });
-  }, error => {
-    console.log(error);
-  })
+      });
+    } else {
+      res.send({
+        error: false,
+        refresh_user:false,
+        data: playlist
+      });
+    }
+  });
 });
 
-router.delete('/userId/:userId/playlists/:playlistId/tracks', Util.authenticate, function(req, res, next) {
-  console.log("removing tracks");
-  Factory.getInstance().getController("user").findById(req.params.userId).then(user => {
-    Factory.getInstance().getController("playlist").removeTracks(user.id,req.params.playlistId,user.access_token,req.headers.body).then((status) => {
-      //Error access_token expired
-      if (status.error) {
-        var options = {
-          url: 'http://localhost:3000/v1/auth/refresh_token/' + user.refresh_token,
-          json: true
-        };
-        // use refresh access_token
-        request.get(options, function(error, response, body) {
-          console.log(body);
-          Factory.getInstance().getController("user").update({
-            id: req.params.userId,
-            access_token: body.data.access_token
-          }).then(data => {
-          }, error => {
-          })
-          let result2 = Factory.getInstance().getController("playlist").removeTracks(user.id,req.params.playlistId,user.access_token,req.headers.body)
-          result2.then((status) => {
-            console.log(status);
-            res.send({
-              error: false,
-              data: status
-            });
+router.delete('/:playlistId/tracks', Util.authenticate, function(req, res, next) {
+  let data = JSON.parse(req.headers.body);
+  Factory.getInstance().getController("playlist").removeTracks(data.id, req.params.playlistId, data.access_token, data.tracks).then((status) => {
+    //Error access_token expired
+    if (status.error) {
+      var options = {
+        url: 'http://localhost:3000/v1/auth/refresh_token/' + user.refresh_token,
+        json: true
+      };
+      // use refresh access_token
+      request.get(options, function(error, response, body) {
+        let user = {};
+        user.id = data.id;
+        user.access_token = body.data.access_token;
+        Factory.getInstance().getController("user").update(user).then((data)=>{},(error)=>{});
+        Factory.getInstance().getController("playlist").removeTracks(data.id, req.params.playlistId, data.access_token, data.tracks).then((status) => {
+          res.send({
+            error: false,
+            refresh_user:true,
+            data: status
           });
         });
-      } else {
-        res.send({
-          error: false,
-          data: status
-        });
-      }
-    });
-  }, error => {
-    console.log(error);
-  })
+      });
+    } else {
+      res.send({
+        error: false,
+        refresh_user:false,
+        data: status
+      });
+    }
+  });
 });
 
 module.exports = router;

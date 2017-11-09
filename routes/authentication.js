@@ -83,29 +83,21 @@ router.get('/callback', function(req, res) {
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
           Factory.getInstance().getController("user").findById(body.id).then((user)=>{
-            var user = {};
-            user.id = body.id;
-            user.access_token = access_token;
-            user.refresh_token = refresh_token;
-            Factory.getInstance().getController("user").update(user).then(data=>{
-               console.log(data);
-            });
-            let data = querystring.stringify({ id:body.id, token:jwt.sign(body.id,config.secret) });
+            let data = querystring.stringify(user);
             res.redirect('http://localhost:4200/callback?'+data);
           },(error)=>{
-            console.log(error);
             var user = {};
             user.id = body.id;
             user.country = body.country;
             user.display_name = body.display_name;
             user.email = body.email;
             user.uri = body.uri;
-            user.access_token = access_token;
+            user.token = jwt.sign(user.id,config.secret);
             user.refresh_token = refresh_token;
+            user.access_token = access_token;
             Factory.getInstance().getController("user").create(user).then(data=>{
-               console.log(data);
             });
-            let data = querystring.stringify({ id:body.id, token:jwt.sign(body.id,config.secret) });
+            let data = querystring.stringify(user);
             res.redirect('http://localhost:4200/callback?'+data);
           });
         });

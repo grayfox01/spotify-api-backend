@@ -8,8 +8,8 @@ var users = require('./users');
 var authentication = require('./authentication');
 
 router.use('/auth', authentication);
-router.use('/playlists', playlists);
 router.use('/users', users);
+router.use('/playlists', playlists);
 
 router.get('/',function(req,res,next){
   res.send("welcome to our api");
