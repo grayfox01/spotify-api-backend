@@ -10,15 +10,12 @@ var UserController = {
           findAll: function() {
             var deferred = Q.defer();
             try {
-              console.log("consultando usuarios");
               User.forge()
                 .fetchAll()
                 .then(function(collection) {
-                  console.log("usuarios:", collection);
                   deferred.resolve(collection.toJSON());
                 })
                 .catch(function(err) {
-                  console.log("Error:", err, message);
                   deferred.reject({
                     error: true,
                     data: {

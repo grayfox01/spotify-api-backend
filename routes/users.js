@@ -1,41 +1,135 @@
 var express = require('express');
 var router = express.Router();
+var UserController = require('./../factory/factory').getInstance().getController('user');
+var moment = require('moment');
+var AuthController = require('./../factory/factory').getInstance().getController("auth");
+var jwt = require('jsonwebtoken');
 var config = require('./../config');
-var Util = require('./../util/util');
-var Factory = require('./../factory/factory');
 
-router.get('/:id', Util.authenticate ,function(req,res,next){
-  let result = Factory.getInstance().getController("user").findById(req.params.id);
-  result.then((data)=>{
-    res.status(200).send({error:false, 'data' : data});
-  },(error)=>{
-    res.status(400).send({error:true, 'data' : error.message});
-  });
-});
-
-router.delete('/:id',Util.authenticate,function(req,res,next){
-  let result = Factory.getInstance().getController("user").remove(req.params.id);
-  result.then((data)=>{
-    res.status(200).send({error:false, 'data' : data});
-  },(error)=>{
-    res.status(400).send({error:true, 'data' : error.message});
-  });
-});
-
-router.put('/',Util.authenticate,function(req,res,next){
-  let userU = req.body;
-  let result = Factory.getInstance().getController("user").findById(userU.id);
-  result.then(function (data) {
-    if(userU.password != data.password){
-      userU.password = crypto.createHash('sha256').update(userU.password).digest('base64');
+let users = function(io) {
+  router.use(function(req, res, next) {
+    if (req.payload) {
+      let body;
+      if (req.headers.body) {
+        body = body = JSON.parse(req.headers.body);
+      }
+      var payload = req.payload;
+      if (payload.exp_date <= moment().unix()) {
+        AuthController.refreshToken(payload.refresh_token).then(data => {
+          payload.access_token = data;
+          payload.exp_date = moment().add(3600, 'seconds').unix();
+          let token = jwt.sign(payload, config.secret);
+          if (body && body.socket_id) {
+            io.sockets.connected[body.socket_id].emit("refresh_token", token);
+          }
+          req.token = token;
+          req.payload = payload;
+          next();
+        }, error => {
+          res.status(error.status).send(error);
+        });
+      } else {
+        next();
+      }
+    } else {
+      let authorization = req.headers['authorization'];
+      // decode token
+      if (authorization) {
+        var token = authorization.split(" ")[1];
+        // verifies secret and checks exp
+        jwt.verify(token, config.secret, function(err, decoded) {
+          if (err) {
+            return res.status(401).send({
+              error: true,
+              data: {
+                message: 'Failed to authenticate token.'
+              }
+            });
+          } else {
+            let body;
+            if (req.headers.body) {
+              body = body = JSON.parse(req.headers.body);
+            }
+            if (decoded.exp_date <= moment().unix()) {
+              AuthController.refreshToken(decoded.refresh_token).then(data => {
+                try {
+                  decoded.access_token = data;
+                  decoded.exp_date = moment().add(3600, 'seconds').unix();
+                  token = jwt.sign(decoded, config.secret);
+                  if (body && body.socket_id) {
+                    io.sockets.connected[body.socket_id].emit("refresh_token", token);
+                  }
+                  req.token = token;
+                  req.payload = decoded;
+                  next();
+                } catch (e) {
+                  console.log(e);
+                }
+              }, error => {
+                res.status(error.status).send(error);
+              });
+            } else {
+              req.token = token;
+              req.payload = decoded;
+              next();
+            }
+          }
+        });
+      } else {
+        return res.status(403).send({
+          error: true,
+          data: {
+            message: 'No token provided.'
+          }
+        });
+      }
     }
-    let result = Factory.getInstance().getController("user").update(userU);
-    result.then((data)=>{
-      res.status(200).send({error:false, 'data' : data});
-    },(error)=>{
-      res.status(400).send({error:true, 'data' : error.message});
+  });
+
+  router.get('/me', function(req, res, next) {
+    let payload = req.payload;
+    UserController.findById(payload.id).then((data) => {
+      res.status(200).send(data);
+    }, (error) => {
+      console.log(error);
+      res.status(error.status).send(error);
     });
   });
-});
 
-module.exports = router;
+  router.delete('/me', function(req, res, next) {
+    let payload = req.payload;
+    let body;
+    if (req.headers.body) {
+      body = body = JSON.parse(req.headers.body);
+    }
+    UserController.remove(payload.id).then((data) => {
+      if (body && body.socket_id) {
+        io.sockets.connected[body.socket_id].to(payload.id).emit("remove_user", "cierre la session");
+      }
+      res.status(200).send(data);
+    }, (error) => {
+      res.status(error.status).send(error);
+    });
+  });
+
+  router.put('/me', function(req, res, next) {
+    let userU = req.body;
+    let payload = req.payload;
+    let body;
+    if (req.headers.body) {
+      body = body = JSON.parse(req.headers.body);
+    }
+    UserController.findById(userU.id).then(function(data) {
+      UserController.update(userU).then((data) => {
+        if (body && body.socket_id) {
+          io.sockets.connected[body.socket_id].to(payload.id).emit("refresh_user", "refresque el usuario");
+        }
+        res.status(200).send(data);
+      }, (error) => {
+        res.status(error.status).send(error);
+      });
+    });
+  });
+  return router;
+}
+module.exports = users;

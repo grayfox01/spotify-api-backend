@@ -1,5 +1,7 @@
 var UserController = require('./../controllers/users');
 var PlaylistController = require('./../controllers/playlists');
+var AuthController = require('./../controllers/auth');
+var DeletedTracksController = require('./../controllers/deleted_tracks');
 
 var factory = {
   getInstance: (function() {
@@ -13,6 +15,10 @@ var factory = {
                   controller = UserController.getInstance();
               }else if (type === "playlist") {
                   controller = PlaylistController.getInstance();
+              }else if (type === "auth") {
+                  controller = AuthController.getInstance();
+              }else if (type === "deleted_track") {
+                  controller = DeletedTracksController.getInstance();
               }
               return controller;
           }

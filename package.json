@@ -1,13 +1,13 @@
 {
-  "name": "node-js-getting-started",
+  "name": "spotify-delete-tracks",
   "version": "0.2.6",
-  "description": "A sample Node.js app using Express 4",
+  "description": "A simple aplication to remove spotify repeated tracks",
   "engines": {
     "node": "6.11.1"
   },
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "service mongod restart && nodemon index.js",
     "test": "node test.js"
   },
   "dependencies": {
@@ -19,18 +19,17 @@
     "express": "4.15.2",
     "jsonwebtoken": "^8.1.0",
     "knex": "^0.13.0",
-    "mongoose": "^4.12.5",
+    "moment": "^2.19.2",
+    "mongoose": "^4.13.4",
     "mysql2": "^1.4.2",
     "path": "^0.12.7",
-    "q": "^1.5.1"
+    "q": "^1.5.1",
+    "socket.io": "^2.0.4"
   },
   "devDependencies": {
+    "cucumber": "^3.1.0",
     "request": "^2.81.0",
     "tape": "^4.7.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/heroku/node-js-getting-started"
   },
   "keywords": [
     "node",

@@ -1,27 +1,20 @@
-var jwt    = require('jsonwebtoken');
-var Factory = require('./../factory/factory');
+let util = {};
 
-let Util = {};
-Util.authenticate = function(req, res, next) {
-    let authorization = req.headers['authorization'];
-    // decode token
-    if (authorization) {
-      let token = authorization.split(" ")[1];
-      // verifies secret and checks exp
-      jwt.verify(token, 'spotifyApiBackend', function(err, decoded) {
-        if (err) {
-          return res.json({ error: true, data:{ message: 'Failed to authenticate token.' }});
-        } else {
-          next();
-        }
-      });
-    } else {
-      return res.status(403).send({
-          error: true,
-          data:{
-            message: 'No token provided.'
-          }
-      });
+util.findDuplicateds = function (tracksArray) {
+    let tracks = tracksArray;
+    let notDuplicateds = [];
+    let duplicateds = [];
+    while(tracks.length > 0){
+        let track = tracks[0];
+        let repeteds = tracks.filter((item) => {
+          return (item.name === track.name && item.artists.join() === track.artists.join());
+        });
+        tracks = tracks.filter((item) => {
+          return  !(item.name === track.name && item.artists.join() === track.artists.join());
+        });
+        duplicateds.push({'name':track.name,'artists':track.artists,'tracks':repeteds});
     }
+    return duplicateds;
 };
-module.exports = Util;
+
+module.exports = util;

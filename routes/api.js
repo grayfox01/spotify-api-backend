@@ -4,15 +4,21 @@ var router = express.Router();
 var config = require('./../config');
 // Set our api routes
 var playlists = require('./playlists');
+var deleted_tracks = require('./deleted_tracks');
 var users = require('./users');
-var authentication = require('./authentication');
+var auth = require('./auth');
 
-router.use('/auth', authentication);
-router.use('/users', users);
-router.use('/playlists', playlists);
+let api = function(io) {
+  router.use('/auth', auth(io));
+  router.use('/users', users(io));
+  router.use('/playlists', playlists(io));
+  router.use('/deleted_tracks', deleted_tracks(io));
 
-router.get('/',function(req,res,next){
-  res.send("welcome to our api");
-});
+  router.get('/', function(req, res, next) {
+    res.send("welcome to our api");
+  });
 
-module.exports = router;
+  return router;
+}
+
+module.exports = api;
