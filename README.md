@@ -6,7 +6,7 @@ This aplication can remove your repeateds tracks from spotify account.
 
 - Nodejs
 - Mongodb
-- Mysql(user:root,password:123456,database:proyectoDS2) or modify values on config.js
+- Mysql(user:root,password:123456,database:proyectoDS2) or modify values in config.js
 
 # Configuration
 - npm install 
